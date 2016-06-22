@@ -1,0 +1,15 @@
+bin
+logs
+target
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+.conf
+README
+*.log
+.metadata
+/RUNNING_PID
+
+.cache-*
