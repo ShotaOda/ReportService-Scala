@@ -97,15 +97,18 @@ object MailHandler {
       val sentDateTime = new DateTime(mes.getSentDate)
 
 
+      /* =========================================================
+         ほんぶん
+      ========================================================= */
       val subject = mes.getSubject
       var plainbody: Option[String] = None
       var htmlbody: Option[String] = None
       var errorMessage: Option[String] = None
-      var attachments: List[MailAttachment] = Nil
+      var attachments: Seq[MailAttachment] = Nil
       var multipart: Option[SimpleMultiPart] = None
 
       /* =========================================================
-         ほんぶん
+         かいせき
       ========================================================= */
       val CONTENTTYPE = mes.getContentType.toUpperCase
       if (CONTENTTYPE startsWith "TEXT/PLAIN") {
@@ -113,23 +116,24 @@ object MailHandler {
           plainbody = Some(mes.getContent.toString)
         } catch {
           case e: UnsupportedEncodingException =>
-            errorMessage = Some(Seq(errorMessage, Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: ${getFormat(e)}")).flatMap { x => x }.mkString("\n"))
+            errorMessage = Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: ${getFormat(e)}")
           case ee: Throwable =>
-            errorMessage = Some(Seq(errorMessage, Some(s"読込中に例外が発生しました。\n$ee")).flatMap { x => x }.mkString("\n"))
+            errorMessage = Some(s"読込中に例外が発生しました。\n$ee")
         }
       } else if (CONTENTTYPE startsWith "TEXT/HTML") {
           htmlbody = Some(mes.getContent.toString)
 
       } else if (CONTENTTYPE startsWith "MULTIPART") {
-        val parsed = parseMultiPart(mes.getContent.asInstanceOf[Multipart])
-        multipart match {
-          case Some(p) => multipart = Some(p + parsed)
-          case None => multipart = Some(parsed)
-        }
+        multipart = Some(parseMultiPart(mes.getContent.asInstanceOf[Multipart]))
+        val m = multipart.get
+        m.plainBody.foreach(x => plainbody = Some(x))
+        m.htmlBody.foreach(x => htmlbody = Some(x))
+        if (!m.attachments.isEmpty) attachments = m.attachments
+        m.error.foreach(x => errorMessage = Some(x))
+      } else {
+        errorMessage = Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: ${CONTENTTYPE}")
       }
-      if (errorMessage.isDefined) {
-        plainbody = Some(Seq(plainbody, errorMessage).flatMap { v => v }.mkString("\n"))
-      }
+
       print("・") // かくにん
       multipart.foreach { v =>
         if (v.plainBody.isEmpty && v.htmlBody.isEmpty) {
@@ -144,10 +148,8 @@ object MailHandler {
         }
       }
 
-      handler(Mail(from, tos, ccs, bccs, subject, plainbody, htmlbody, attachments, sentDateTime))
+      handler(Mail(from, tos, ccs, bccs, subject, sentDateTime, plainbody, htmlbody, attachments, errorMessage))
     }
-//    folder.close(true)
-//    store.close()
     mc.close()
   }
 

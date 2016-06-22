@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import javax.sql.rowset.serial.SerialBlob
 import javax.inject.Inject
-
+import java.util.Date
 import models.Tables._
 import org.joda.time.DateTime
 import play.api.db.slick._
@@ -23,7 +23,7 @@ class ReportController @Inject()(val dbConfigProvider: DatabaseConfigProvider) e
   import driver.api._
 
   //
-  def list(date: Int) = Action.async { implicit rs =>
+  def list(date: Date) = Action.async { implicit rs =>
 
     //validation
     val sdf = new SimpleDateFormat("yyyyMMdd")
