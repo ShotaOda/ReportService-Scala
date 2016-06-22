@@ -1,0 +1,25 @@
+@(reports: Seq[(models.Tables.UserRow,models.Tables.ReportbodyRow,models.Tables.ReportbodyRow)])
+
+@main("Welcome to Play") {
+<div class="col-xs-6">
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>name</th>
+            <th>job</th>
+        </tr>
+        </thead>
+        <tbody>
+        @reports.map { report =>
+        <tr>
+            <td>re._1.userName</td>
+            <td>re._1.userAddress</td>
+            <td>re._2.reportbody</td>
+            <td>re._3.reportbody</td>
+        </tr>
+        }
+        </tbody>
+    </table>
+</div>
+}

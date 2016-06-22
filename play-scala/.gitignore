@@ -6,10 +6,13 @@ target
 /.classpath
 /.project
 /.settings
-.conf
-README
+
+
 *.log
-.metadata
+*.metadata
+/conf
 /RUNNING_PID
 
 .cache-*
+
+README
