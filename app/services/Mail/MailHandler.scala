@@ -128,27 +128,39 @@ object MailHandler {
         val m = multipart.get
         m.plainBody.foreach(x => plainbody = Some(x))
         m.htmlBody.foreach(x => htmlbody = Some(x))
-        if (!m.attachments.isEmpty) attachments = m.attachments
+        if (m.attachments.nonEmpty) attachments = m.attachments
         m.error.foreach(x => errorMessage = Some(x))
       } else {
         errorMessage = Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: ${CONTENTTYPE}")
       }
 
-      print("・") // かくにん
+      //print("・") // かくにん
+
       multipart.foreach { v =>
         if (v.plainBody.isEmpty && v.htmlBody.isEmpty) {
           println(from)
-          println("☆起こってはいけない")
+          println("[err]ボディがNone")
         } else if (v.attachments != Nil && v.htmlBody.isEmpty) {
           println(from)
-          println(v.attachments)
+          println(s"[err]INLINEアタッチメントありなのに、本文無し\n${v.attachments}")
         } else if (v.error.isDefined) {
-          println(s"error message ${from.getAddress}")
-          println(v.error.get)
+          println(from)
+          println(s"[err]なにかしら\n${v.error.get}")
         }
       }
 
-      handler(Mail(from, tos, ccs, bccs, subject, sentDateTime, plainbody, htmlbody, attachments, errorMessage))
+      handler(
+        Mail(
+          from = from
+          , tos = tos
+          , ccs = ccs
+          , bccs = bccs
+          , subject = subject
+          , sentDate = sentDateTime
+          , plainBody = plainbody
+          , htmlBody = htmlbody.map(s => trimHtml(s))
+          , attachments = attachments
+          , error = errorMessage))
     }
     mc.close()
   }
@@ -160,6 +172,10 @@ object MailHandler {
   private def getFormat(e: UnsupportedEncodingException): String = {
     val message = e.getMessage
     message.substring(message.indexOf(':') + 1, message.length)
+  }
+
+  private def trimHtml(htmlStr: String): String = {
+    htmlStr.trim.replaceAll("|\n|\r\n|\r", "")
   }
 
   private def parseMultiPart(multipart: Multipart): SimpleMultiPart = {

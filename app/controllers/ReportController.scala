@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import javax.sql.rowset.serial.SerialBlob
 import javax.inject.Inject
-import java.util.Date
+import org.joda.time.Duration
 import models.Tables._
 import org.joda.time.DateTime
 import play.api.db.slick._
@@ -41,16 +41,12 @@ class ReportController @Inject()(val dbConfigProvider: DatabaseConfigProvider) e
   }
 
   def sync() = Action.async { implicit rs =>
-    //    val origindate = new DateTime(2016, 4, 1, 0, 0)
-    //    val end = new DateTime().dayOfMonth().roundFloorCopy()
-    //    val numIterator = Stream.from(0).iterator
-    //    val d = new Duration(origindate, end)
-    //    (0 to d.getStandardDays.toInt).foreach { i =>
-    //      println(origindate.plusDays(i))
-    //      fetchInsertMail(origindate.plusDays(i))
-    //    }
-
-    fetchInsertMail(new DateTime(2016, 6, 9, 0, 0))
+    val origindate = new DateTime(2016, 4, 1, 0, 0)
+    val end = new DateTime().dayOfMonth().roundFloorCopy()
+    val d = new Duration(origindate, end)
+    (0 to d.getStandardDays.toInt).foreach { i =>
+      fetchInsertMail(origindate.plusDays(i))
+    }
 
     db.run(User.sortBy(_.userId).result).map { users =>
       Ok(views.html.userList(users))
@@ -84,43 +80,21 @@ class ReportController @Inject()(val dbConfigProvider: DatabaseConfigProvider) e
   private def fetchInsertMail(dateTime: DateTime) = {
 
     MailHandler.mailStream(dateTime) { implicit mail =>
-      //      db.run(User.filter(_.userAddress === mail.from.getAddress).result.headOption).map { user =>
-      //        user match {
-      //          case Some(u) =>
-      //            println("hakken")
-      //            println(s"既存の${u.userId}")
-      //            u.userId
-      //          case None =>
-      //            println("NAAAAAAAAAAAAAAAAAAAAAAiiiiiiiii")
-      //            val action = db.run((User returning User.map(_.userId)) += UserRow(0, mail.from.getAddress, "", mail.from.getAddress, ""))
-      //            action.onComplete {
-      //              case Success(v) => println("success")
-      //              case Failure(e) => println(s"failfail\n$e")
-      //            }
-      //            val res = Await.result(action, Duration.Inf)
-      //            println(s"newnew$res")
-      //            res
-      //          //            Await.ready(action, Duration.Inf)
-      //          //            println(action.onSuccess { case userId: Int => userId })
-      //        }
-      //      }.map { userId =>
-      //        println(userId)
-      //      }
 
       val action = for {
-      // Specify User
+        // ユーザー探索
         user <- User.filter(_.userAddress === mail.from.getAddress).result.headOption
 
-        // Insert Report Record
-        reportId <- if (user.isDefined) (Report returning Report.map(_.reportId)) += ReportRow(0, user.get.userId, mail.subject, new Timestamp(mail.sentDate.getMillis))
+        // 日報レコード insert
+        reportId <- if (user.isDefined) (Report returning Report.map(_.reportId)) += ReportRow(0, user.get.userId, Some(mail.subject), new Timestamp(mail.sentDate.getMillis))
         else {
           for {
             userId <- (User returning User.map(_.userId)) += UserRow(0, mail.from.getAddress.substring(0, mail.from.getAddress.indexOf('@')), "", mail.from.getAddress, "BOS")
-            report <- (Report returning Report.map(_.reportId)) += ReportRow(0, userId, mail.subject, new Timestamp(mail.sentDate.getMillis))
+            report <- (Report returning Report.map(_.reportId)) += ReportRow(0, userId, Some(mail.subject), new Timestamp(mail.sentDate.getMillis))
           } yield (report)
         }
 
-        // Insert Address
+        // アドレス情報 insert
         _ <- Reportheader ++= mail.tos.map { to =>
           ReportheaderRow(reportId, "TO", to.getAddress)
         }
@@ -131,7 +105,7 @@ class ReportController @Inject()(val dbConfigProvider: DatabaseConfigProvider) e
           ReportheaderRow(reportId, "BCC", bcc.getAddress)
         }
 
-        // Insert Report Body
+        // 日報本体 insert
         _ <-
         if (mail.plainBody.isDefined) Reportbody += ReportbodyRow(0, reportId, "PLAIN", mail.plainBody.get)
         else DBIO.successful(0)
@@ -139,7 +113,7 @@ class ReportController @Inject()(val dbConfigProvider: DatabaseConfigProvider) e
         if (mail.htmlBody.isDefined) (Reportbody returning Reportbody.map(_.reportbodyId)) += ReportbodyRow(0, reportId, if (mail.attachments != Nil) "RELATED" else "HTML", mail.htmlBody.get)
         else DBIO.successful(0)
 
-        // Insert Asset
+        // インライン添付ファイル insert
         _ <- if (mail.htmlBody.isDefined) {
           Reportasset ++= mail.attachments.map { attach =>
             ReportassetRow(

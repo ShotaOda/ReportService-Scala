@@ -6,13 +6,13 @@
 GET     /                           controllers.HomeController.index
 
 # showing user List
-GET     /user/list                   controllers.UserController.list
+GET     /user/list                  controllers.UserController.list
 
 # showing report List
 GET     /report/list:date controllers.ReportController.list(date)
 
 # sync db with gmail
-GET     /syncDB                   controllers.ReportController.sync
+GET     /syncDB                     controllers.ReportController.sync
 
 # An example controller showing how to use dependency injection
 GET     /count                      controllers.CountController.count

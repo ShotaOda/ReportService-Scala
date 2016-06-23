@@ -90,26 +90,26 @@ trait Tables {
   /** Entity class storing rows of table Report
    *  @param reportId Database column Report_ID SqlType(INT), AutoInc
    *  @param userId Database column User_ID SqlType(INT)
-   *  @param reportTitle Database column Report_Title SqlType(VARCHAR), Length(200,true)
+   *  @param reportTitle Database column Report_Title SqlType(VARCHAR), Length(200,true), Default(None)
    *  @param reportSentdate Database column Report_SentDate SqlType(DATETIME) */
-  case class ReportRow(reportId: Int, userId: Int, reportTitle: String, reportSentdate: java.sql.Timestamp)
+  case class ReportRow(reportId: Int, userId: Int, reportTitle: Option[String] = None, reportSentdate: java.sql.Timestamp)
   /** GetResult implicit for fetching ReportRow objects using plain SQL queries */
-  implicit def GetResultReportRow(implicit e0: GR[Int], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[ReportRow] = GR{
+  implicit def GetResultReportRow(implicit e0: GR[Int], e1: GR[Option[String]], e2: GR[java.sql.Timestamp]): GR[ReportRow] = GR{
     prs => import prs._
-    ReportRow.tupled((<<[Int], <<[Int], <<[String], <<[java.sql.Timestamp]))
+    ReportRow.tupled((<<[Int], <<[Int], <<?[String], <<[java.sql.Timestamp]))
   }
   /** Table description of table Report. Objects of this class serve as prototypes for rows in queries. */
   class Report(_tableTag: Tag) extends Table[ReportRow](_tableTag, "Report") {
     def * = (reportId, userId, reportTitle, reportSentdate) <> (ReportRow.tupled, ReportRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(reportId), Rep.Some(userId), Rep.Some(reportTitle), Rep.Some(reportSentdate)).shaped.<>({r=>import r._; _1.map(_=> ReportRow.tupled((_1.get, _2.get, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(reportId), Rep.Some(userId), reportTitle, Rep.Some(reportSentdate)).shaped.<>({r=>import r._; _1.map(_=> ReportRow.tupled((_1.get, _2.get, _3, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column Report_ID SqlType(INT), AutoInc */
     val reportId: Rep[Int] = column[Int]("Report_ID", O.AutoInc)
     /** Database column User_ID SqlType(INT) */
     val userId: Rep[Int] = column[Int]("User_ID")
-    /** Database column Report_Title SqlType(VARCHAR), Length(200,true) */
-    val reportTitle: Rep[String] = column[String]("Report_Title", O.Length(200,varying=true))
+    /** Database column Report_Title SqlType(VARCHAR), Length(200,true), Default(None) */
+    val reportTitle: Rep[Option[String]] = column[Option[String]]("Report_Title", O.Length(200,varying=true), O.Default(None))
     /** Database column Report_SentDate SqlType(DATETIME) */
     val reportSentdate: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("Report_SentDate")
 
@@ -126,7 +126,7 @@ trait Tables {
    *  @param reportassetId Database column ReportAsset_ID SqlType(INT), AutoInc, PrimaryKey
    *  @param reportassetCid Database column ReportAsset_CID SqlType(VARCHAR), Length(50,true)
    *  @param reportbodyId Database column ReportBody_ID SqlType(INT)
-   *  @param reportasset Database column ReportAsset SqlType(BLOB), Default(None)
+   *  @param reportasset Database column ReportAsset SqlType(LONGBLOB), Default(None)
    *  @param reportassetExtention Database column ReportAsset_Extention SqlType(VARCHAR), Length(10,true), Default(None) */
   case class ReportassetRow(reportassetId: Int, reportassetCid: String, reportbodyId: Int, reportasset: Option[java.sql.Blob] = None, reportassetExtention: Option[String] = None)
   /** GetResult implicit for fetching ReportassetRow objects using plain SQL queries */
@@ -146,7 +146,7 @@ trait Tables {
     val reportassetCid: Rep[String] = column[String]("ReportAsset_CID", O.Length(50,varying=true))
     /** Database column ReportBody_ID SqlType(INT) */
     val reportbodyId: Rep[Int] = column[Int]("ReportBody_ID")
-    /** Database column ReportAsset SqlType(BLOB), Default(None) */
+    /** Database column ReportAsset SqlType(LONGBLOB), Default(None) */
     val reportasset: Rep[Option[java.sql.Blob]] = column[Option[java.sql.Blob]]("ReportAsset", O.Default(None))
     /** Database column ReportAsset_Extention SqlType(VARCHAR), Length(10,true), Default(None) */
     val reportassetExtention: Rep[Option[String]] = column[Option[String]]("ReportAsset_Extention", O.Length(10,varying=true), O.Default(None))
@@ -158,10 +158,10 @@ trait Tables {
   lazy val Reportasset = new TableQuery(tag => new Reportasset(tag))
 
   /** Entity class storing rows of table Reportbody
-   *  @param reportbodyId Database column ReportBody_ID SqlType(INT), AutoInc
+   *  @param reportbodyId Database column ReportBody_ID SqlType(INT), AutoInc, PrimaryKey
    *  @param reportId Database column Report_ID SqlType(INT)
    *  @param reportbodyTypeCode Database column ReportBody_Type_Code SqlType(VARCHAR), Length(10,true)
-   *  @param reportbody Database column ReportBody SqlType(TEXT) */
+   *  @param reportbody Database column ReportBody SqlType(LONGTEXT), Length(2147483647,true) */
   case class ReportbodyRow(reportbodyId: Int, reportId: Int, reportbodyTypeCode: String, reportbody: String)
   /** GetResult implicit for fetching ReportbodyRow objects using plain SQL queries */
   implicit def GetResultReportbodyRow(implicit e0: GR[Int], e1: GR[String]): GR[ReportbodyRow] = GR{
@@ -174,17 +174,14 @@ trait Tables {
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(reportbodyId), Rep.Some(reportId), Rep.Some(reportbodyTypeCode), Rep.Some(reportbody)).shaped.<>({r=>import r._; _1.map(_=> ReportbodyRow.tupled((_1.get, _2.get, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column ReportBody_ID SqlType(INT), AutoInc */
-    val reportbodyId: Rep[Int] = column[Int]("ReportBody_ID", O.AutoInc)
+    /** Database column ReportBody_ID SqlType(INT), AutoInc, PrimaryKey */
+    val reportbodyId: Rep[Int] = column[Int]("ReportBody_ID", O.AutoInc, O.PrimaryKey)
     /** Database column Report_ID SqlType(INT) */
     val reportId: Rep[Int] = column[Int]("Report_ID")
     /** Database column ReportBody_Type_Code SqlType(VARCHAR), Length(10,true) */
     val reportbodyTypeCode: Rep[String] = column[String]("ReportBody_Type_Code", O.Length(10,varying=true))
-    /** Database column ReportBody SqlType(TEXT) */
-    val reportbody: Rep[String] = column[String]("ReportBody")
-
-    /** Primary key of Reportbody (database name ReportBody_PK) */
-    val pk = primaryKey("ReportBody_PK", (reportbodyId, reportId, reportbodyTypeCode))
+    /** Database column ReportBody SqlType(LONGTEXT), Length(2147483647,true) */
+    val reportbody: Rep[String] = column[String]("ReportBody", O.Length(2147483647,varying=true))
 
     /** Foreign key referencing Report (database name fk_ReportBody_Report1) */
     lazy val reportFk = foreignKey("fk_ReportBody_Report1", reportId, Report)(r => r.reportId, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
@@ -249,12 +246,12 @@ trait Tables {
   lazy val Reportheader = new TableQuery(tag => new Reportheader(tag))
 
   /** Entity class storing rows of table User
-   *  @param userId Database column User_ID SqlType(INT), AutoInc
+   *  @param userId Database column User_ID SqlType(INT), AutoInc, PrimaryKey
    *  @param userName Database column User_Name SqlType(VARCHAR), Length(20,true)
    *  @param userPassword Database column User_Password SqlType(VARCHAR), Length(200,true)
    *  @param userAddress Database column User_Address SqlType(VARCHAR), Length(200,true)
-   *  @param jobsJobCode Database column Jobs_Job_Code SqlType(VARCHAR), Length(3,true) */
-  case class UserRow(userId: Int, userName: String, userPassword: String, userAddress: String, jobsJobCode: String)
+   *  @param jobCode Database column Job_Code SqlType(VARCHAR), Length(3,true) */
+  case class UserRow(userId: Int, userName: String, userPassword: String, userAddress: String, jobCode: String)
   /** GetResult implicit for fetching UserRow objects using plain SQL queries */
   implicit def GetResultUserRow(implicit e0: GR[Int], e1: GR[String]): GR[UserRow] = GR{
     prs => import prs._
@@ -262,26 +259,23 @@ trait Tables {
   }
   /** Table description of table User. Objects of this class serve as prototypes for rows in queries. */
   class User(_tableTag: Tag) extends Table[UserRow](_tableTag, "User") {
-    def * = (userId, userName, userPassword, userAddress, jobsJobCode) <> (UserRow.tupled, UserRow.unapply)
+    def * = (userId, userName, userPassword, userAddress, jobCode) <> (UserRow.tupled, UserRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(userId), Rep.Some(userName), Rep.Some(userPassword), Rep.Some(userAddress), Rep.Some(jobsJobCode)).shaped.<>({r=>import r._; _1.map(_=> UserRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(userId), Rep.Some(userName), Rep.Some(userPassword), Rep.Some(userAddress), Rep.Some(jobCode)).shaped.<>({r=>import r._; _1.map(_=> UserRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column User_ID SqlType(INT), AutoInc */
-    val userId: Rep[Int] = column[Int]("User_ID", O.AutoInc)
+    /** Database column User_ID SqlType(INT), AutoInc, PrimaryKey */
+    val userId: Rep[Int] = column[Int]("User_ID", O.AutoInc, O.PrimaryKey)
     /** Database column User_Name SqlType(VARCHAR), Length(20,true) */
     val userName: Rep[String] = column[String]("User_Name", O.Length(20,varying=true))
     /** Database column User_Password SqlType(VARCHAR), Length(200,true) */
     val userPassword: Rep[String] = column[String]("User_Password", O.Length(200,varying=true))
     /** Database column User_Address SqlType(VARCHAR), Length(200,true) */
     val userAddress: Rep[String] = column[String]("User_Address", O.Length(200,varying=true))
-    /** Database column Jobs_Job_Code SqlType(VARCHAR), Length(3,true) */
-    val jobsJobCode: Rep[String] = column[String]("Jobs_Job_Code", O.Length(3,varying=true))
-
-    /** Primary key of User (database name User_PK) */
-    val pk = primaryKey("User_PK", (userId, jobsJobCode))
+    /** Database column Job_Code SqlType(VARCHAR), Length(3,true) */
+    val jobCode: Rep[String] = column[String]("Job_Code", O.Length(3,varying=true))
 
     /** Foreign key referencing Jobs (database name fk_User_Jobs) */
-    lazy val jobsFk = foreignKey("fk_User_Jobs", jobsJobCode, Jobs)(r => r.jobCode, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+    lazy val jobsFk = foreignKey("fk_User_Jobs", jobCode, Jobs)(r => r.jobCode, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
 
     /** Uniqueness Index over (userAddress) (database name User_Address_UNIQUE) */
     val index1 = index("User_Address_UNIQUE", userAddress, unique=true)
