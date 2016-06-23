@@ -23,7 +23,7 @@ class ReportController @Inject()(val dbConfigProvider: DatabaseConfigProvider) e
   import driver.api._
 
   //
-  def list(date: Date) = Action.async { implicit rs =>
+  def list(date: String) = Action.async { implicit rs =>
 
     //validation
     val sdf = new SimpleDateFormat("yyyyMMdd")
