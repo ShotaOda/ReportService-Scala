@@ -3,6 +3,7 @@ package models.Entity
 import java.io.InputStream
 import javax.mail.internet.InternetAddress
 
+import akka.io.IO.Extension
 import org.joda.time.DateTime
 
 /**
@@ -20,4 +21,4 @@ case class Mail(
                  , attachments : Seq[MailAttachment]
                  , error       : Option[String])
 
-case class MailAttachment(cid: String, attachStream: InputStream, extention: String)
+case class MailAttachment(cid: String, attach: Array[Byte], extension : String)

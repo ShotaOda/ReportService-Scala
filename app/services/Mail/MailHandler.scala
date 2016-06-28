@@ -1,11 +1,10 @@
 package services.Mail
 
 import java.io.UnsupportedEncodingException
-import javax.mail._
+import javax.mail.{search, _}
 import javax.mail.internet.InternetAddress
-import javax.mail.search.{AndTerm, ComparisonTerm, SearchTerm, SentDateTerm}
+import javax.mail.search.{AndTerm, ComparisonTerm, SentDateTerm}
 
-import com.typesafe.config.{Config, ConfigFactory}
 import models.Entity.{Mail, MailAttachment}
 import org.joda.time.DateTime
 
@@ -15,18 +14,22 @@ import org.joda.time.DateTime
 
 object MailHandler {
 
-  def testMailStream() = {
-    implicit val handler: Mail => Unit = { m =>
+  def syncDefaultPerWeek(from:DateTime, to:DateTime) = {
+    /* =========================================================
+        じゅんび
+    ========================================================= */
+    val fromTerm = new SentDateTerm(ComparisonTerm.GE, from.toDate)
+    val toTerm   = new SentDateTerm(ComparisonTerm.LT, to.toDate)
+    val mc = MailConfig.default()
+    mc.open()
 
-    }
-    import org.joda.time.Duration
-    val origindate = new DateTime(2016, 5, 11, 0, 0)
-    val end = new DateTime().dayOfMonth().roundFloorCopy()
-    val d = new Duration(origindate, end)
-    (0 to d.getStandardDays.toInt).foreach { i =>
-      println(origindate.plusDays(i))
-      mailStream(origindate.plusDays(i))
-    }
+    /* =========================================================
+         たんさく
+    ========================================================= */
+    val mails = mc.search(new AndTerm(Array(fromTerm,toTerm)))
+      .map { mes => parseMessage(mes) }
+    mc.close()
+    mails
   }
 
   case class SimpleMultiPart(
@@ -55,114 +58,25 @@ object MailHandler {
     }
   }
 
-  def mailStream(dateTime: DateTime)(implicit handler: (Mail) => Unit) = {
+  def mailStream(from: DateTime) = {
 
     /* =========================================================
         じゅんび
     ========================================================= */
-    val fromTerm = new SentDateTerm(ComparisonTerm.GE, dateTime.toDate)
-    val toTerm   = new SentDateTerm(ComparisonTerm.LT, dateTime.plusDays(1).toDate)
+    val fromTerm = new SentDateTerm(ComparisonTerm.GE, from.toDate)
     val mc = MailConfig.default()
     mc.open()
-    println(s"=== RESULT at $dateTime ==============")
-    println(mc.search(new AndTerm(Array(fromTerm, toTerm))).length)
 
     /* =========================================================
          たんさく
     ========================================================= */
-    mc.search(new AndTerm(Array(fromTerm, toTerm))).foreach { mes =>
-
-      /* =========================================================
-         へっだー
-      ========================================================= */
-      val from = mes.getFrom()(0).asInstanceOf[InternetAddress]
-      var tos: List[InternetAddress] = Nil
-      if (mes.getRecipients(Message.RecipientType.TO) != null) {
-        tos = mes.getRecipients(Message.RecipientType.TO).map {
-          _.asInstanceOf[InternetAddress]
-        }.toList
-      }
-      var ccs: List[InternetAddress] = Nil
-      if (mes.getRecipients(Message.RecipientType.CC) != null) {
-        ccs = mes.getRecipients(Message.RecipientType.CC).map {
-          _.asInstanceOf[InternetAddress]
-        }.toList
-      }
-      var bccs: List[InternetAddress] = Nil
-      if (mes.getRecipients(Message.RecipientType.BCC) != null) {
-        bccs = mes.getRecipients(Message.RecipientType.BCC).map {
-          _.asInstanceOf[InternetAddress]
-        }.toList
-      }
-      val sentDateTime = new DateTime(mes.getSentDate)
-
-
-      /* =========================================================
-         ほんぶん
-      ========================================================= */
-      val subject = mes.getSubject
-      var plainbody: Option[String] = None
-      var htmlbody: Option[String] = None
-      var errorMessage: Option[String] = None
-      var attachments: Seq[MailAttachment] = Nil
-      var multipart: Option[SimpleMultiPart] = None
-
-      /* =========================================================
-         かいせき
-      ========================================================= */
-      val CONTENTTYPE = mes.getContentType.toUpperCase
-      if (CONTENTTYPE startsWith "TEXT/PLAIN") {
-        try{
-          plainbody = Some(mes.getContent.toString)
-        } catch {
-          case e: UnsupportedEncodingException =>
-            errorMessage = Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: ${getFormat(e)}")
-          case ee: Throwable =>
-            errorMessage = Some(s"読込中に例外が発生しました。\n$ee")
-        }
-      } else if (CONTENTTYPE startsWith "TEXT/HTML") {
-          htmlbody = Some(mes.getContent.toString)
-
-      } else if (CONTENTTYPE startsWith "MULTIPART") {
-        multipart = Some(parseMultiPart(mes.getContent.asInstanceOf[Multipart]))
-        val m = multipart.get
-        m.plainBody.foreach(x => plainbody = Some(x))
-        m.htmlBody.foreach(x => htmlbody = Some(x))
-        if (m.attachments.nonEmpty) attachments = m.attachments
-        m.error.foreach(x => errorMessage = Some(x))
-      } else {
-        errorMessage = Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: ${CONTENTTYPE}")
-      }
-
-      //print("・") // かくにん
-
-      multipart.foreach { v =>
-        if (v.plainBody.isEmpty && v.htmlBody.isEmpty) {
-          println(from)
-          println("[err]ボディがNone")
-        } else if (v.attachments != Nil && v.htmlBody.isEmpty) {
-          println(from)
-          println(s"[err]INLINEアタッチメントありなのに、本文無し\n${v.attachments}")
-        } else if (v.error.isDefined) {
-          println(from)
-          println(s"[err]なにかしら\n${v.error.get}")
-        }
-      }
-
-      handler(
-        Mail(
-          from = from
-          , tos = tos
-          , ccs = ccs
-          , bccs = bccs
-          , subject = subject
-          , sentDate = sentDateTime
-          , plainBody = plainbody
-          , htmlBody = htmlbody.map(s => trimHtml(s))
-          , attachments = attachments
-          , error = errorMessage))
-    }
+    val mails = mc.search(fromTerm)
+//      .filter  { mes =>
+//        mes.getFrom.contains(m => m.asInstanceOf[InternetAddress].getAddress.contains("div-hr"))
+//      }
+      .map { mes => parseMessage(mes) }
     mc.close()
+    mails
   }
 
   private def getExtension(contentType: String): String = {
@@ -176,6 +90,97 @@ object MailHandler {
 
   private def trimHtml(htmlStr: String): String = {
     htmlStr.trim.replaceAll("|\n|\r\n|\r", "")
+  }
+
+  private def parseMessage(mes: Message): Mail = {
+    /* =========================================================
+         へっだー
+      ========================================================= */
+    val from = mes.getFrom()(0).asInstanceOf[InternetAddress]
+    println(from)
+    var tos: List[InternetAddress] = Nil
+    if (mes.getRecipients(Message.RecipientType.TO) != null) {
+      tos = mes.getRecipients(Message.RecipientType.TO).map {
+        _.asInstanceOf[InternetAddress]
+      }.toList
+    }
+    var ccs: List[InternetAddress] = Nil
+    if (mes.getRecipients(Message.RecipientType.CC) != null) {
+      ccs = mes.getRecipients(Message.RecipientType.CC).map {
+        _.asInstanceOf[InternetAddress]
+      }.toList
+    }
+    var bccs: List[InternetAddress] = Nil
+    if (mes.getRecipients(Message.RecipientType.BCC) != null) {
+      bccs = mes.getRecipients(Message.RecipientType.BCC).map {
+        _.asInstanceOf[InternetAddress]
+      }.toList
+    }
+    val sentDateTime = new DateTime(mes.getSentDate)
+    //println(sentDateTime)
+    val subject = if(mes.getSubject == null) "件名なし" else mes.getSubject
+
+    /* =========================================================
+       ほんぶん
+    ========================================================= */
+    var plainbody: Option[String] = None
+    var htmlbody: Option[String] = None
+    var errorMessage: Option[String] = None
+    var attachments: Seq[MailAttachment] = Nil
+    var multipart: Option[SimpleMultiPart] = None
+
+    /* =========================================================
+       かいせき
+    ========================================================= */
+    val CONTENTTYPE = mes.getContentType.toUpperCase
+    if (CONTENTTYPE startsWith "TEXT/PLAIN") {
+      try{
+        plainbody = Some(mes.getContent.toString)
+      } catch {
+        case e: UnsupportedEncodingException =>
+          errorMessage = Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: ${getFormat(e)}")
+        case ee: Throwable =>
+          errorMessage = Some(s"読込中に例外が発生しました。\n$ee")
+      }
+    } else if (CONTENTTYPE startsWith "TEXT/HTML") {
+      htmlbody = Some(mes.getContent.toString)
+
+    } else if (CONTENTTYPE startsWith "MULTIPART") {
+      multipart = Some(parseMultiPart(mes.getContent.asInstanceOf[Multipart]))
+      val m = multipart.get
+      plainbody = m.plainBody.map(x => x)
+      htmlbody = m.htmlBody.map(x => x)
+      if (m.attachments.nonEmpty) attachments = m.attachments
+      m.error.foreach(x => errorMessage = Some(x))
+    } else {
+      errorMessage = Some(s"対応していないフォーマットのため読み込めませんでした\nフォーマット: $CONTENTTYPE")
+    }
+
+    //print("・")
+    multipart.foreach { v =>
+      if (v.plainBody.isEmpty && v.htmlBody.isEmpty) {
+        println(from)
+        println("[err]ボディがNone")
+      } else if (v.attachments != Nil && v.htmlBody.isEmpty) {
+        println(from)
+        println(s"[err]INLINEアタッチメントありなのに、本文無し\n${v.attachments}")
+      } else if (v.error.isDefined) {
+        println(from)
+        println(s"[warn]なにかしら\n${v.error.get}")
+      }
+    }
+
+    Mail(
+      from = from
+      , tos = tos
+      , ccs = ccs
+      , bccs = bccs
+      , subject = subject
+      , sentDate = sentDateTime
+      , plainBody = plainbody
+      , htmlBody = htmlbody.map(s => trimHtml(s))
+      , attachments = attachments
+      , error = errorMessage)
   }
 
   private def parseMultiPart(multipart: Multipart): SimpleMultiPart = {
@@ -201,10 +206,14 @@ object MailHandler {
       else if (partType startsWith "MULTIPART/") childMultipart = Some(parseMultiPart(part.getContent.asInstanceOf[Multipart]))
       else if (partType startsWith "IMAGE") {
         if (part.getDisposition == Part.INLINE.toUpperCase) {
-          attachments :+= MailAttachment.apply(
+          val in = part.getInputStream
+          attachments :+= MailAttachment(
             cid = part.getHeader("Content-ID")(0).replace("<", "").replace(">", "")
-            , attachStream = part.getInputStream
-            , extention = getExtension(part.getContentType)
+            , attach = Stream.continually(in.read).takeWhile(_ != -1).map{ b =>
+              print(b.toByte)
+              b.toByte
+            }.toArray
+            , extension = getExtension(part.getContentType)
           )
         } else {
           println("find 添付ファイル Error")

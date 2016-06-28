@@ -1,25 +1,53 @@
-@(reports: Seq[(models.Tables.UserRow,models.Tables.ReportbodyRow,models.Tables.ReportbodyRow)])
+@(items: Seq[models.ViewEntity.ReportRowItem])
 
 @main("Welcome to Play") {
 <div class="col-xs-6">
     <table class="table table-hover">
         <thead>
         <tr>
-            <th>ID</th>
-            <th>name</th>
-            <th>job</th>
+            <th>名前</th>
+            <th>タイトル</th>
+            <th>送信日時</th>
+            <th>コメント件数</th>
         </tr>
         </thead>
         <tbody>
-        @reports.map { report =>
-        <tr>
-            <td>re._1.userName</td>
-            <td>re._1.userAddress</td>
-            <td>re._2.reportbody</td>
-            <td>re._3.reportbody</td>
+        @items.map { item =>
+        <tr class="clickable" data-reportId="@item.reportId">
+            <td>@item.name</td>
+            <td>@item.title</td>
+            <td>@item.sentDate</td>
+            <td>@item.commentCount</td>
         </tr>
         }
         </tbody>
     </table>
 </div>
+<div id="detail" class="col-xs-6">
+
+</div>
+
+<script type="text/javascript">
+$(function(){
+    $("tr.clickable").on("click", function(){
+        $.getJSON("/api/reportBody", {reportId: $(this).attr("data-reportId")}, function(data){
+        if (data.length === 1){
+            $("#detail").empty().append($detail("title", data.reports[0].body))
+        } else {
+            var report = data.reports.filter(function(el){return el.type != "PLAIN"})[0]
+            $("#detail").empty().append($detail("title", report.body))
+        }
+        })
+    })
+})
+
+function $detail(title, body){
+    return $(`<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">${title}</h3>
+  </div>
+  <div class="panel-body">${body}</div>
+</div>`)
+}
+</script>
 }

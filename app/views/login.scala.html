@@ -1,0 +1,36 @@
+@(form: Form[(String, String)])(implicit messages: Messages)
+
+@main("login") {
+@if(form.hasErrors) {
+<ul>
+    @for(error <- form.errors) {
+    <li>@error.message</li>
+    }
+</ul>
+}
+
+@helper.form(action = routes.AuthController.authenticate()) {
+<div class="form-group">
+    userName:
+    @helper.inputText(
+    form("userName"),
+    'type -> "text",
+    'class ->"form-control",
+    'placeholder -> "ubuntu",
+    '_label -> "",
+    '_showConstraints -> false)
+</div>
+<div class="form-group">
+    password:
+    @helper.inputPassword(
+    form("password"),
+    'type -> "password",
+    'class ->"form-control",
+    'placeholder -> "password",
+    '_label -> "",
+    '_showConstraints -> false
+    )
+</div>
+<button type="submit" class="btn btn-success" id="sign_in_out_btn">Sign in</button>
+}
+}

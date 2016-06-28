@@ -37,7 +37,7 @@ fork in run := false
 slick <<= slickCodeGenTask // register manual sbt command
 
 lazy val slick = TaskKey[Unit]("gen-tables")
-lazy val slickCodeGenTask = (dependencyClasspath in Compile, runner in Compile, streams) map {(cp, r, s) =>
+lazy val slickCodeGenTask = (dependencyClasspath in Compile, runner in Compile, streams) map { (cp, r, s) =>
   val slickDriver = "slick.driver.MySQLDriver"
   val jdbcDriver = "com.mysql.jdbc.Driver"
   val url = "jdbc:mysql://localhost/testdb"
