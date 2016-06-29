@@ -1,7 +1,9 @@
 package controllers
 
+import java.io.File
 import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
+import javafx.scene.image.WritableImage
 import javax.inject.Inject
 import javax.sql.rowset.serial.SerialBlob
 
@@ -9,6 +11,7 @@ import models.Tables._
 import models.ViewEntity.ReportRowItem
 import org.joda.time.DateTime
 import play.api.db.slick._
+import play.api.libs.iteratee.Enumerator
 import play.api.mvc._
 import services.AuthService
 import services.Mail.MailHandler
@@ -74,9 +77,17 @@ class ReportController @Inject()( val dbConfigProvider: DatabaseConfigProvider
     }
   }
 
-  def image(name: String) = Action {
-
-    Ok.sendFile(new java.io.File(name)) // the name should contains the image extensions
+  def inlineImage(bid: Int, cid: String) = withAuth { username => implicit rs =>
+    println("inline image call")
+    val assetAction = Reportasset.filter {asset => asset.reportbodyId === bid && asset.reportassetCid === cid}.result.head
+    db.run(assetAction).map { asset =>
+      asset.reportasset match {
+        case Some(b) =>
+          val bs = asset.reportasset.get.getBinaryStream
+          Ok(Stream.continually(bs.read).takeWhile(_ != -1).map(_.toByte)toArray).as(s"image/${asset.reportassetExtention}")
+        case None => NotFound("")
+      }
+    }
   }
 
   /* =========================================================

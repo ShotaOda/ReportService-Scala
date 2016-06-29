@@ -32,7 +32,7 @@ class JsonApiController @Inject()(val dbConfigProvider: DatabaseConfigProvider
           Json.obj(
             "id"        -> report.reportId,
             "type"      -> report.reportbodyTypeCode,
-            "body"      -> report.reportbody
+            "body"      -> report.reportbody.replace("cid:",s"inline?bid=${report.reportbodyId}&cid=")
           )
         })
       )

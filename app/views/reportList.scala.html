@@ -31,8 +31,9 @@
 $(function(){
     $("tr.clickable").on("click", function(){
         $.getJSON("/api/reportBody", {reportId: $(this).attr("data-reportId")}, function(data){
-        if (data.length === 1){
-            $("#detail").empty().append($detail("title", data.reports[0].body))
+        console.dir(data)
+        if (data.reports.length === 1){
+            $("#detail").empty().append($detail("title", `<pre>${data.reports[0].body}</pre>`))
         } else {
             var report = data.reports.filter(function(el){return el.type != "PLAIN"})[0]
             $("#detail").empty().append($detail("title", report.body))

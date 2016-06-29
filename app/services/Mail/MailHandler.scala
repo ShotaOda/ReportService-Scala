@@ -92,6 +92,10 @@ object MailHandler {
     htmlStr.trim.replaceAll("|\n|\r\n|\r", "")
   }
 
+  private def rewriteImageSrc(htmlStr: String): String = {
+    htmlStr.replace("cid:", "image/")
+  }
+
   private def parseMessage(mes: Message): Mail = {
     /* =========================================================
          へっだー

@@ -5,10 +5,13 @@
 GET     /                           controllers.HomeController.index
 
 GET     /user/list                  controllers.UserController.list
-GET     /report/list                controllers.ReportController.list(date:Option[String])
 GET     /syncDB                     controllers.ReportController.sync
 GET     /count                      controllers.CountController.count
 GET     /message                    controllers.AsyncController.message
+
+# Report
+GET     /report/list                controllers.ReportController.list(date:Option[String])
+GET     /report/inline              controllers.ReportController.inlineImage(bid: Int,cid: String)
 
 # Asset
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
@@ -18,8 +21,6 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 GET     /test                       controllers.AuthController.login
 POST    /test/auth                  controllers.AuthController.authenticate
 GET     /test/logout                controllers.AuthController.logout
-
-
 
 
 # API
