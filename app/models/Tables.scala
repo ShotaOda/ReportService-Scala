@@ -14,7 +14,7 @@ trait Tables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(Jobs.schema, Mailfetchlog.schema, Recipienttype.schema, Report.schema, Reportasset.schema, Reportbody.schema, ReportbodyType.schema, Reportheader.schema, User.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(Jobs.schema, Mailfetchlog.schema, Recipienttype.schema, Report.schema, Reportasset.schema, Reportbody.schema, ReportbodyType.schema, Reportcomment.schema, Reportheader.schema, User.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -42,7 +42,7 @@ trait Tables {
   lazy val Jobs = new TableQuery(tag => new Jobs(tag))
 
   /** Entity class storing rows of table Mailfetchlog
-   *  @param mailfetchlogId Database column MailFetchLog_ID SqlType(INT), PrimaryKey
+   *  @param mailfetchlogId Database column MailFetchLog_ID SqlType(INT), AutoInc, PrimaryKey
    *  @param mailfetchDate Database column MailFetch_Date SqlType(DATETIME) */
   case class MailfetchlogRow(mailfetchlogId: Int, mailfetchDate: java.sql.Timestamp)
   /** GetResult implicit for fetching MailfetchlogRow objects using plain SQL queries */
@@ -56,8 +56,8 @@ trait Tables {
     /** Maps whole row to an option. Useful for outer joins. */
     def ? = (Rep.Some(mailfetchlogId), Rep.Some(mailfetchDate)).shaped.<>({r=>import r._; _1.map(_=> MailfetchlogRow.tupled((_1.get, _2.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column MailFetchLog_ID SqlType(INT), PrimaryKey */
-    val mailfetchlogId: Rep[Int] = column[Int]("MailFetchLog_ID", O.PrimaryKey)
+    /** Database column MailFetchLog_ID SqlType(INT), AutoInc, PrimaryKey */
+    val mailfetchlogId: Rep[Int] = column[Int]("MailFetchLog_ID", O.AutoInc, O.PrimaryKey)
     /** Database column MailFetch_Date SqlType(DATETIME) */
     val mailfetchDate: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("MailFetch_Date")
 
@@ -210,6 +210,43 @@ trait Tables {
   }
   /** Collection-like TableQuery object for table ReportbodyType */
   lazy val ReportbodyType = new TableQuery(tag => new ReportbodyType(tag))
+
+  /** Entity class storing rows of table Reportcomment
+   *  @param reportcommentId Database column ReportComment_ID SqlType(INT), AutoInc, PrimaryKey
+   *  @param userId Database column User_ID SqlType(INT)
+   *  @param reportId Database column Report_ID SqlType(INT)
+   *  @param reportcomment Database column ReportComment SqlType(VARCHAR), Length(45,true)
+   *  @param reportcommentSentdate Database column ReportComment_SentDate SqlType(DATETIME) */
+  case class ReportcommentRow(reportcommentId: Int, userId: Int, reportId: Int, reportcomment: String, reportcommentSentdate: java.sql.Timestamp)
+  /** GetResult implicit for fetching ReportcommentRow objects using plain SQL queries */
+  implicit def GetResultReportcommentRow(implicit e0: GR[Int], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[ReportcommentRow] = GR{
+    prs => import prs._
+    ReportcommentRow.tupled((<<[Int], <<[Int], <<[Int], <<[String], <<[java.sql.Timestamp]))
+  }
+  /** Table description of table ReportComment. Objects of this class serve as prototypes for rows in queries. */
+  class Reportcomment(_tableTag: Tag) extends Table[ReportcommentRow](_tableTag, "ReportComment") {
+    def * = (reportcommentId, userId, reportId, reportcomment, reportcommentSentdate) <> (ReportcommentRow.tupled, ReportcommentRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (Rep.Some(reportcommentId), Rep.Some(userId), Rep.Some(reportId), Rep.Some(reportcomment), Rep.Some(reportcommentSentdate)).shaped.<>({r=>import r._; _1.map(_=> ReportcommentRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column ReportComment_ID SqlType(INT), AutoInc, PrimaryKey */
+    val reportcommentId: Rep[Int] = column[Int]("ReportComment_ID", O.AutoInc, O.PrimaryKey)
+    /** Database column User_ID SqlType(INT) */
+    val userId: Rep[Int] = column[Int]("User_ID")
+    /** Database column Report_ID SqlType(INT) */
+    val reportId: Rep[Int] = column[Int]("Report_ID")
+    /** Database column ReportComment SqlType(VARCHAR), Length(45,true) */
+    val reportcomment: Rep[String] = column[String]("ReportComment", O.Length(45,varying=true))
+    /** Database column ReportComment_SentDate SqlType(DATETIME) */
+    val reportcommentSentdate: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("ReportComment_SentDate")
+
+    /** Foreign key referencing Report (database name fk_ReportComment_Report1) */
+    lazy val reportFk = foreignKey("fk_ReportComment_Report1", reportId, Report)(r => r.reportId, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+    /** Foreign key referencing User (database name fk_ReportComment_User1) */
+    lazy val userFk = foreignKey("fk_ReportComment_User1", userId, User)(r => r.userId, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+  }
+  /** Collection-like TableQuery object for table Reportcomment */
+  lazy val Reportcomment = new TableQuery(tag => new Reportcomment(tag))
 
   /** Entity class storing rows of table Reportheader
    *  @param reportId Database column Report_ID SqlType(INT)

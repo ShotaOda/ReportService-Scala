@@ -1,3 +1,43 @@
-body {
-  padding-top: 70px;
+html,body{
+  height: 100%;
+}
+
+pre{
+  background-color: #FFF !important;
+  border: none !important;
+}
+
+.col {
+  position: absolute;
+  top: 70px;
+  bottom: 0px;
+  overflow-y: scroll;
+}
+
+.right{
+  left: 25%%;
+  width: 75%;
+}
+
+.left{
+  left: 10px;
+  width: 50%;
+}
+
+.base{
+  z-index: 0;
+}
+
+#detail{
+  left: 25%;
+  width: 50%;
+  z-index: 1000;
+}
+
+#comment{
+  margin-left: 10px;
+  margin-right: 10px;
+  left: 75%;
+  width: 25%;
+  z-index: 1000;
 }

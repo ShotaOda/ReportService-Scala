@@ -2,6 +2,7 @@ package controllers
 
 import javax.inject.Inject
 
+import filters.Secured
 import models.Tables._
 import play.api.data._
 import play.api.data.Forms._
@@ -14,7 +15,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.mvc.Controller
 import services.AuthService
 import slick.driver.JdbcProfile
-import play.api.i18n.{MessagesApi,I18nSupport}
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 /**
   * Created by Shota on 2016/06/26.

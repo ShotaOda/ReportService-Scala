@@ -3,6 +3,7 @@ package controllers
 
 import javax.inject.Inject
 
+import filters.Secured
 import models.Tables._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json._

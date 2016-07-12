@@ -1,17 +1,20 @@
 package controllers
 
-import java.io.File
 import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
-import javafx.scene.image.WritableImage
 import javax.inject.Inject
 import javax.sql.rowset.serial.SerialBlob
 
+import filters.SecuredFilter
 import models.Tables._
 import models.ViewEntity.ReportRowItem
 import org.joda.time.DateTime
+import play.api.data.Form
 import play.api.db.slick._
 import play.api.libs.iteratee.Enumerator
+import play.api.data.Form
+import play.api.data.Forms._
+import play.api.libs.json.{JsArray, Json}
 import play.api.mvc._
 import services.AuthService
 import services.Mail.MailHandler
@@ -20,32 +23,43 @@ import slick.driver.JdbcProfile
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success}
 
 
 /**
   * Created by Shota on 2016/06/13.
   */
-class ReportController @Inject()( val dbConfigProvider: DatabaseConfigProvider
-                                 ,override val authService: AuthService
+class ReportController @Inject()(
+                                  val dbConfigProvider: DatabaseConfigProvider
+                                 ,val authService: AuthService
                                 )
   extends Controller
     with HasDatabaseConfigProvider[JdbcProfile]
-    with Secured{
+    with SecuredFilter {
 
   import driver.api._
 
   /* =========================================================
-    コントローラー
+    フォーム
+  ========================================================= */
+  val commentForm = Form(
+    "comment" -> nonEmptyText
+  )
+
+
+
+  /* =========================================================
+    アクション
   ========================================================= */
 
-  def list(date: Option[String]) = withAuth { username => implicit rs =>
+  def reportList(date: Option[String]) = withAuth { username => implicit rs =>
 
     //validation
     val sdf = new SimpleDateFormat("yyyyMMdd")
     val targetDate: DateTime = try {
       date match {
         case Some(d) => new DateTime(sdf.parse(d))
-        case None    => new DateTime()
+        case None => new DateTime()
       }
     } catch {
       case e: ParseException => new DateTime()
@@ -59,7 +73,62 @@ class ReportController @Inject()( val dbConfigProvider: DatabaseConfigProvider
     }
   }
 
+  def reportBody(reportId: Int) = withAuth { username => implicit rs =>
+    db.run(Reportbody.filter(_.reportId === reportId).result).map { reports =>
+      val json = Json.obj(
+        "reports" -> JsArray(reports.map { report =>
+          Json.obj(
+            "id" -> report.reportId,
+            "type" -> report.reportbodyTypeCode,
+            "body" -> report.reportbody.replace("cid:", s"inline?bid=${report.reportbodyId}&cid=")
+          )
+        })
+      )
+      Ok(json)
+    }
+  }
 
+  def commentList(reportId: Int) = withAuth { username => implicit rs =>
+    val action = for {
+      comment <- Reportcomment.filter(_.reportId === reportId)
+      user <- User.filter(_.userId === comment.userId)
+    } yield (comment, user)
+    db.run(action.result).map { results =>
+      val json = Json.obj(
+        "comments" -> JsArray(results.map { r =>
+          Json.obj(
+            "id" -> r._1.reportcommentId,
+            "user" -> r._2.userName,
+            "comment" -> r._1.reportcomment,
+            "date"    -> new DateTime(r._1.reportcommentSentdate).toString("MM/dd HH:mm")
+          )
+        })
+      )
+      Ok(json)
+    }
+  }
+
+  def handleComment(reportId: Int) = withUser { user => implicit rs =>
+    //Reportcomment += ReportcommentRow(0,user.userId,reportId,rs.)
+    val comment = commentForm.bindFromRequest.get
+    db.run(Reportcomment += ReportcommentRow(0,user.userId,reportId, comment, new Timestamp(new DateTime().getMillis))).map {
+      case 1      => Ok("correctly insert")
+      case _      => InternalServerError("can't add comment")
+    }
+  }
+
+  def inlineImage(bid: Int, cid: String) = withAuth { username => implicit rs =>
+    println("inline image call")
+    val assetAction = Reportasset.filter { asset => asset.reportbodyId === bid && asset.reportassetCid === cid }.result.head
+    db.run(assetAction).map { asset =>
+      asset.reportasset match {
+        case Some(b) =>
+          val bs = asset.reportasset.get.getBinaryStream
+          Ok(Stream.continually(bs.read).takeWhile(_ != -1).map(_.toByte) toArray).as(s"image/${asset.reportassetExtention}")
+        case None => NotFound("")
+      }
+    }
+  }
 
   def sync() = Action.async { implicit rs =>
     //import org.joda.time.Duration
@@ -74,19 +143,6 @@ class ReportController @Inject()( val dbConfigProvider: DatabaseConfigProvider
     //fetchInsertMail(new DateTime(selectLastFetch))
     fetchReportItem(new DateTime().dayOfMonth.roundFloorCopy).map { item =>
       Ok(views.html.reportList(item))
-    }
-  }
-
-  def inlineImage(bid: Int, cid: String) = withAuth { username => implicit rs =>
-    println("inline image call")
-    val assetAction = Reportasset.filter {asset => asset.reportbodyId === bid && asset.reportassetCid === cid}.result.head
-    db.run(assetAction).map { asset =>
-      asset.reportasset match {
-        case Some(b) =>
-          val bs = asset.reportasset.get.getBinaryStream
-          Ok(Stream.continually(bs.read).takeWhile(_ != -1).map(_.toByte)toArray).as(s"image/${asset.reportassetExtention}")
-        case None => NotFound("")
-      }
     }
   }
 
@@ -105,7 +161,7 @@ class ReportController @Inject()( val dbConfigProvider: DatabaseConfigProvider
       resultSeq.map { r =>
         val date = new DateTime(r._1.reportSentdate)
         ReportRowItem(
-            name = r._2.userName
+          name = r._2.userName
           , title = r._1.reportTitle.get
           , commentCount = 0
           , sentDate = date.toString("MM/dd HH:mm")

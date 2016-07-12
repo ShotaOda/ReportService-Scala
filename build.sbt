@@ -49,3 +49,6 @@ lazy val slickCodeGenTask = (dependencyClasspath in Compile, runner in Compile, 
   toError(r.run("slick.codegen.SourceCodeGenerator", cp.files, Array(slickDriver, jdbcDriver, url, outputDir, pkg, usr, password), s.log))
   println("output file is -> " + outputDir + "/models/Tables.scala")
 }
+
+
+fork in run := true

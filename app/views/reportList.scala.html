@@ -1,54 +1,211 @@
 @(items: Seq[models.ViewEntity.ReportRowItem])
 
 @main("Welcome to Play") {
-<div class="col-xs-6">
-    <table class="table table-hover">
+  <div class="content">
+    <div class="col left base">
+      <!-- Calendar -->
+      <div class="row">
+        <div class="col-md-offset-1 col-md-3 input-group date" data-provide="datepicker">
+          <input type="text" class="form-control" readonly="readonly">
+          <div class="input-group-addon">
+            <span class="glyphicon glyphicon-calendar"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report List -->
+      <table class="table table-hover">
         <thead>
-        <tr>
+          <tr>
             <th>名前</th>
             <th>タイトル</th>
             <th>送信日時</th>
             <th>コメント件数</th>
-        </tr>
+          </tr>
         </thead>
         <tbody>
-        @items.map { item =>
-        <tr class="clickable" data-reportId="@item.reportId">
-            <td>@item.name</td>
-            <td>@item.title</td>
-            <td>@item.sentDate</td>
-            <td>@item.commentCount</td>
-        </tr>
-        }
+          @items.map { item =>
+            <tr class="clickable" data-reportId="@item.reportId">
+              <td>@item.name</td>
+              <td>@item.title</td>
+              <td>@item.sentDate</td>
+              <td>@item.commentCount</td>
+            </tr>
+          }
         </tbody>
-    </table>
-</div>
-<div id="detail" class="col-xs-6">
+      </table>
+    </div>
 
-</div>
+    <!-- Dynamic Contents -->
+    <div id="slide" hidden>
 
-<script type="text/javascript">
-$(function(){
-    $("tr.clickable").on("click", function(){
-        $.getJSON("/api/reportBody", {reportId: $(this).attr("data-reportId")}, function(data){
-        console.dir(data)
-        if (data.reports.length === 1){
-            $("#detail").empty().append($detail("title", `<pre>${data.reports[0].body}</pre>`))
-        } else {
-            var report = data.reports.filter(function(el){return el.type != "PLAIN"})[0]
-            $("#detail").empty().append($detail("title", report.body))
-        }
-        })
-    })
-})
+      <div id="detail" class="col">
 
-function $detail(title, body){
-    return $(`<div class="panel panel-default">
-  <div class="panel-heading">
-    <h3 class="panel-title">${title}</h3>
+      </div>
+
+      <div id="comment" class="col">
+
+      </div>
+
+    </div>
   </div>
-  <div class="panel-body">${body}</div>
-</div>`)
-}
-</script>
-}
+
+  <script type="text/javascript">
+  $(function(){
+    // handling Report show / hide
+    $("tr.clickable").on("click", function(){
+      $("#slide").show()
+      var reportId = $(this).attr("data-reportId")
+      /* 本体取得 */
+      $.getJSON("/api/reportBody", {reportId: reportId}, function(data){
+        if (data.reports.length === 1){
+          $("#detail").empty().append($detail("title", `<pre>${data.reports[0].body}</pre>`))
+        } else {
+          var report = data.reports.filter(function(el){return el.type != "PLAIN"})[0]
+          $("#detail").empty().append($detail("title", report.body))
+        }
+        $("#hideSlide").on("click", function(){
+          $("#slide").hide()
+        })
+      })
+
+      var $panel = $commentForm()
+      var $form = $panel.find("form")
+      $form.attr("data-reportId", reportId)
+      $form.on("submit", function(e){
+        e.preventDefault()
+
+        //データ取得
+        var url = $(this).attr('action') + `?reportId=${$(this).attr('data-reportId')}`
+        var body = $(this).serializeArray()
+
+        // UI 変更
+        var $textarea = $(this).find('textarea')
+        $("#comment").append($comment("自分",$textarea.val(), getMMDDHHmm()))
+        $textarea.val("")
+
+        // データ送信
+        $.post(
+          url,
+          body,
+          function(result) {
+            alert(result)
+          },
+          'json' //type
+        )
+      })
+      $("#comment").empty().append($panel)
+      $.getJSON("/api/reportComment/list",{reportId: reportId}, function(data){
+        data.comments.map(function(el){
+          $("#comment").append($comment(el.user, el.comment,el.date))
+        })
+      })
+    })
+
+    // init DatePicker
+    var dateStr = getParam("date")
+    var def = dateStr == undefined ? getYYYYMMDD : addSlashYMD(dateStr)
+    $(".input-group.date input").val(def)
+    $(".input-group.date").datepicker({
+      todayBtn: "linked",
+      orientation: "bottom auto",
+      keyboardNavigation: false,
+      daysOfWeekDisabled: "0,6",
+      autoclose: true,
+      todayHighlight: true,
+      format: "yyyy/mm/dd",
+      endDate: "today",
+    })
+
+    $(".input-group.date").on("changeDate", function(e){
+      tmpdate = e.date
+      var y = e.date.getFullYear()
+      var m = ("0" + (e.date.getMonth() + 1)).slice(-2)
+      var d = ("0" + e.date.getDate()).slice(-2)
+      window.location.href = `list?date=${y}${m}${d}`;
+    })
+  })
+
+  function $detail(title, body){
+    return $(`
+      <div class="panel panel-default">
+      <div class="panel-heading clearfix">
+      <h4 class="panel-title pull-left" style="padding-top: 7.5px;">
+      ${title}
+      </h4>
+      <button type="button" id="hideSlide" class="btn btn-default btn-sm pull-right">
+      <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+      </div>
+      <div class="panel-body">${body}</div>
+      </div>`)
+    }
+
+    function $commentForm(){
+      return $(`
+        <div class="panel panel-default">
+        <div class="panel-heading clearfix">
+        <h4 class="panel-title">コメントする</h4>
+        </div>
+        <div class="panel-body">
+        <form action="/api/reportComment" method="post" data-reportId="">
+        <textarea name="comment" class="form-control" rows="4"></textarea>
+        <button type="submit" class="btn btn-primary btn-sm">投稿</button>
+        </form>
+        </div>
+        </div>
+        `)
+      }
+
+      function $comment(title,body,date){
+        return $(`
+          <div class="panel panel-default">
+          <div class="panel-heading clearfix">
+          <h4 class="panel-title">${title} ${date}</h4>
+          </div>
+          <div class="panel-body">${body}</div>
+          </div>
+          </div>
+        `)
+      }
+
+      function getYYYYMMDD(){
+        var d = new Date()
+        var Y = d.getFullYear()
+        var M = ("0" + (d.getMonth() + 1)).slice(-2)
+        var D = ("0" + (d.getDate())).slice(-2)
+        return `${Y}/${M}/${D}`
+      }
+
+      function getMMDDHHmm(){
+        var d = new Date()
+        var M = d.getMonth() + 1
+        var D = d.getDate()
+        var H = d.getHours()
+        var m = d.getMinutes()
+
+        return `${M}/${D} ${H}:${("0" + m).slice(-2)}`
+      }
+
+      function addSlashYMD(dateStr){
+        return `${dateStr.substr(0,4)}/${dateStr.substr(4,2)}/${dateStr.substr(6,2)}`
+      }
+
+      function getParam(key) {
+        var url   = location.href;
+        var parameters    = url.split("?");
+        var params   = parameters[1].split("&");
+        var paramsArray = [];
+        var neet;
+        for ( i = 0; i < params.length; i++ ) {
+          neet = params[i].split("=");
+          paramsArray.push(neet[0]);
+          paramsArray[neet[0]] = neet[1];
+        }
+        var categoryKey = paramsArray[key];
+        return categoryKey;
+      }
+
+
+        </script>
+      }

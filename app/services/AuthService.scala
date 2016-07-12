@@ -12,7 +12,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
-  * Created by Shota on 2016/06/27.
+  * Created by dabuntu on 2016/06/27.
   */
 class AuthService @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfigProvider[JdbcProfile] {
   import driver.api._
@@ -23,7 +23,6 @@ class AuthService @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   def validate(userName: String, password: String): Boolean = {
-    println(s"$userName, $password")
     val validation = db.run(User.filter(u => u.userName === userName && u.userPassword === password).result.headOption).map { user =>
       user match {
         case Some(u) => true
