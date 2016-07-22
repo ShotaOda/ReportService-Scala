@@ -16,3 +16,16 @@ target
 .cache-*
 
 README
+
+
+.sbtserver/
+project/project/
+public/component/backbone.localstorage/
+public/component/backbone.marionette/
+public/component/backbone/
+public/component/bootstrap/
+public/component/handlebars/
+public/component/jquery/
+public/component/underscore/
+public/js/
+public/template/

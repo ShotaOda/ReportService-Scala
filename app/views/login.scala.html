@@ -1,6 +1,6 @@
 @(form: Form[(String, String)])(implicit messages: Messages)
 
-@main("login") {
+@main() {
 @if(form.hasErrors) {
 <ul>
     @for(error <- form.errors) {

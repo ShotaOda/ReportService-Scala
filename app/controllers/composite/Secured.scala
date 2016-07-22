@@ -1,4 +1,4 @@
-package filters
+package controllers.composite
 
 import controllers.routes
 import models.Tables._
@@ -9,9 +9,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
-  * Created by Shota on 2016/06/26.
+  * Created by ubun on 2016/06/26.
   */
-trait SecuredFilter {
+trait Secured {
 
   //Inject対象
   val authService: AuthService
@@ -26,10 +26,6 @@ trait SecuredFilter {
     }
   }
 
-  /**
-    * This method shows how you could wrap the withAuth method to also fetch your user
-    * You will need to implement UserDAO.findOneByUsername
-    */
   def withUser(f: UserRow => Request[AnyContent] => Future[Result]) = withAuth { username => implicit request =>
     authService.findByUsername(username).map { user =>
       f(user)(request)

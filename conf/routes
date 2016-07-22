@@ -2,12 +2,17 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+# SPAに向けて大幅変更
 GET     /                           controllers.HomeController.index
+GET     /login                      controllers.AuthController.login
+
+
+# APIs
+# Tweet
+GET     /tweet/list                 controllers.Tweet.ApiController.list
 
 GET     /user/list                  controllers.UserController.list
 GET     /syncDB                     controllers.ReportController.sync
-GET     /count                      controllers.CountController.count
-GET     /message                    controllers.AsyncController.message
 
 # Report
 GET     /report/list                controllers.ReportController.reportList(date:Option[String])
@@ -26,5 +31,5 @@ POST    /test/auth                  controllers.AuthController.authenticate
 GET     /test/logout                controllers.AuthController.logout
 
 
-# API
-# GET     /api/reportBody             controllers.JsonApiController.reportBody(reportId: Int)
+# API Report
+# GET     /api/reportBody           controllers.JsonApiController.reportBody(reportId: Int)

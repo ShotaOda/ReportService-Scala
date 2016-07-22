@@ -1,9 +1,7 @@
 package models.Entity
 
-import java.io.InputStream
 import javax.mail.internet.InternetAddress
 
-import akka.io.IO.Extension
 import org.joda.time.DateTime
 
 /**

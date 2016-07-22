@@ -1,19 +1,20 @@
-@*
- * This template takes a single argument, a String containing a
- * message to display.
- *@
-@(message: String)
+@main() {
+<div id="main"></div>
 
-@*
- * Call the `main` template with two arguments. The first
- * argument is a `String` with the title of the page, the second
- * argument is an `Html` object containing the body of the page.
- *@
-@main("Welcome to Play") {
 
-    @*
-     * Get an `Html` object by calling the built-in Play welcome
-     * template and passing a `String` message.
-     *@
-    @play20.welcome(message, style = "Scala")
+<!-- Template -->
+<script type="text/javascript">var TMPL = {}</script>
+<script type="text/javascript" src="@routes.Assets.versioned("template/common/panel.js")"></script>
+<script type="text/javascript" src="@routes.Assets.versioned("template/Tweet/TweetComposite.js")"></script>
+
+<!-- Js Client Side Scripts -->
+<!-- Tweet -->
+<script type="text/javascript" src="@routes.Assets.versioned("js/Tweet/TweetModel.js")"></script>
+<script type="text/javascript" src="@routes.Assets.versioned("js/Tweet/TweetView.js")"></script>
+
+<!-- Layout View-->
+<script type="text/javascript" src="@routes.Assets.versioned("js/RootLayoutView.js")"></script>
+
+<!-- Main -->
+<script type="text/javascript" src="@routes.Assets.versioned("js/Application.js")"></script>
 }

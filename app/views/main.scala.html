@@ -4,25 +4,37 @@
 * two arguments, a `String` for the title of the page and an `Html`
 * object to insert into the body of the page.
 *@
-@(title: String)(content: Html)
+@()(content: Html)
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>@title</title>
+  <title>FIXME</title>
   <link rel="shortcut icon" type="image/png" href="@routes.Assets.versioned("images/favicon.png")">
   <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/main.css")">
 
-  <script src="@routes.Assets.versioned("javascripts/jquery-1.12.4.min.js")" type="text/javascript"></script>
+  <!--  jquery -->
+  <script src="@routes.Assets.versioned("component/jquery/dist/jquery.js")" type="text/javascript"></script>
+
+  <!-- underscore -->
+  <script src="@routes.Assets.versioned("component/underscore/underscore.js")" type="text/javascript"></script>
+
+  <!-- handlebars -->
+  <script src="@routes.Assets.versioned("component/handlebars/handlebars.runtime.js")" type="text/javascript"></script>
 
   <!-- bootstrap -->
-  <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/bootstrap/bootstrap.min.css")">
-  <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/bootstrap/bootstrap-theme.min.css")">
-  <script src="@routes.Assets.versioned("javascripts/bootstrap/bootstrap.min.js")" type="text/javascript"></script>
+  <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("component/bootstrap/css/bootstrap.min.css")">
+  <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("component/bootstrap/css/bootstrap-theme.min.css")">
+  <script src="@routes.Assets.versioned("component/bootstrap/js/bootstrap.min.js")" type="text/javascript"></script>
 
   <!-- bootstrap calendar -->
   <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("component/bootstrap.datepicker/css/bootstrap-datepicker3.min.css")">
-  <script src="@routes.Assets.versioned("component/bootstrap.datepicker/js/bootstrap-datepicker.min.js")" type="text/javascript"></script>
+
+  <!-- backbone & marionette -->
+  <script src="@routes.Assets.versioned("component/backbone/backbone.js")" type="text/javascript"></script>
+  <script src="@routes.Assets.versioned("component/backbone.localstorage/backbone.localstorage.js")" type="text/javascript"></script>
+  <script src="@routes.Assets.versioned("component/backbone.marionette/lib/backbone.marionette.js")" type="text/javascript"></script>
+
 
 </head>
 <body>
@@ -42,7 +54,7 @@
         <ul class="nav navbar-nav">
           <li><a href=#>Send Report</a></li>
           <li><a href="/report/list">Read Reports</a></li>
-          <li><a>Coming Soon</a></li>
+          <li><a id="nav-Twit" href="#">Twit</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
           <li><a>Coming Soon</a></li>

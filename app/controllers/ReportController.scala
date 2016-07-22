@@ -2,18 +2,16 @@ package controllers
 
 import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import javax.sql.rowset.serial.SerialBlob
 
-import filters.SecuredFilter
+import controllers.composite.Secured
 import models.Tables._
 import models.ViewEntity.ReportRowItem
 import org.joda.time.DateTime
 import play.api.data.Form
-import play.api.db.slick._
-import play.api.libs.iteratee.Enumerator
-import play.api.data.Form
 import play.api.data.Forms._
+import play.api.db.slick._
 import play.api.libs.json.{JsArray, Json}
 import play.api.mvc._
 import services.AuthService
@@ -23,19 +21,19 @@ import slick.driver.JdbcProfile
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success}
 
 
 /**
   * Created by Shota on 2016/06/13.
   */
+@Singleton
 class ReportController @Inject()(
                                   val dbConfigProvider: DatabaseConfigProvider
                                  ,val authService: AuthService
                                 )
   extends Controller
     with HasDatabaseConfigProvider[JdbcProfile]
-    with SecuredFilter {
+    with Secured {
 
   import driver.api._
 
